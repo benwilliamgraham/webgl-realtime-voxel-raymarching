@@ -25,22 +25,14 @@ async function main() {
     return shader;
   }
 
-  const vertexShaderSource = `
-    attribute vec4 aPosition;
-
-    void main() {
-        gl_Position = aPosition;
-    }
-    `;
+  const vertexShaderSource = await fetch("src/shaders/vertex.glsl").then(
+    (res) => res.text()
+  );
   const vertexShader = compileShader(gl.VERTEX_SHADER, vertexShaderSource);
 
-  const fragmentShaderSource = `
-    precision mediump float;
-
-    void main() {
-        gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
-    }
-    `;
+  const fragmentShaderSource = await fetch("src/shaders/fragment.glsl").then(
+    (res) => res.text()
+  );
   const fragmentShader = compileShader(
     gl.FRAGMENT_SHADER,
     fragmentShaderSource
