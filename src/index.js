@@ -70,6 +70,20 @@ async function main() {
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
+  // Create matrices
+  const FOV = (45 * Math.PI) / 180;
+  const aspect = canvas.width / canvas.height;
+  const zNear = 0.1;
+  const zFar = 100.0;
+  const projectionMatrix = mat4.create();
+  mat4.perspective(projectionMatrix, FOV, aspect, zNear, zFar);
+
+  const viewMatrix = mat4.create();
+  mat4.translate(viewMatrix, viewMatrix, [0.0, 0.0, -2.0]);
+
+  const modelMatrix = mat4.create();
+  mat4.translate(modelMatrix, modelMatrix, [0.0, 0.0, 0.0]);
+
   // Render
   function render() {
     // Clear screen
@@ -78,6 +92,14 @@ async function main() {
 
     // Use shader program
     gl.useProgram(program);
+
+    // Upload matrices
+    const uMVPMatrix = mat4.create();
+    mat4.multiply(uMVPMatrix, projectionMatrix, viewMatrix);
+    mat4.multiply(uMVPMatrix, uMVPMatrix, modelMatrix);
+
+    const uMVPMatrixLocation = gl.getUniformLocation(program, "uMVPMatrix");
+    gl.uniformMatrix4fv(uMVPMatrixLocation, false, uMVPMatrix);
 
     // Bind vertex array object
     gl.bindVertexArray(vao);
