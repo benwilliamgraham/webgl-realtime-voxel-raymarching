@@ -48,27 +48,85 @@ async function main() {
   }
 
   // Create vertex buffer
-  // 0----1
-  // |  /
-  // |/
-  // 2
+  //    3-----7
+  //   /|    /|
+  //  2-----6 |
+  //  | 1---|-5  y z
+  //  |/    |/   |/
+  //  0-----4    *---> x
   const vertices = [
     // 0
-    -0.5, 0.5, 0.0,
+    0.0, 0.0, 0.0,
     // 1
-    0.5, 0.5, 0.0,
+    0.0, 0.0, 1.0,
     // 2
-    -0.5, -0.5, 0.0,
+    0.0, 1.0, 0.0,
+    // 3
+    0.0, 1.0, 1.0,
+    // 4
+    1.0, 0.0, 0.0,
+    // 5
+    1.0, 0.0, 1.0,
+    // 6
+    1.0, 1.0, 0.0,
+    // 7
+    1.0, 1.0, 1.0,
   ];
   const vertexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
+  // Create index buffer
+  const indices = [
+    // x- face
+    1, 3, 2, 1, 2, 0,
+    // x+ face
+    4, 6, 7, 4, 7, 5,
+    // y- face
+    1, 0, 4, 1, 4, 5,
+    // y+ face
+    2, 3, 7, 2, 7, 6,
+    // z- face
+    0, 2, 6, 0, 6, 4,
+    // z+ face
+    5, 7, 3, 5, 3, 1,
+  ];
+  const indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(indices),
+    gl.STATIC_DRAW
+  );
+
   // Create vertex array object
   const vao = gl.createVertexArray();
   gl.bindVertexArray(vao);
-  gl.enableVertexAttribArray(0);
-  gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
+
+  // Bind vertex buffer
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+
+  // Bind index buffer
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+
+  // Setup vertex attributes
+  const aPositionLocation = gl.getAttribLocation(program, "aPosition");
+  gl.enableVertexAttribArray(aPositionLocation);
+
+  const size = 3;
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = 0;
+
+  gl.vertexAttribPointer(
+    aPositionLocation,
+    size,
+    type,
+    normalize,
+    stride,
+    offset
+  );
 
   // Create matrices
   const FOV = (45 * Math.PI) / 180;
@@ -83,6 +141,62 @@ async function main() {
 
   const modelMatrix = mat4.create();
   mat4.translate(modelMatrix, modelMatrix, [0.0, 0.0, 0.0]);
+
+  // Handle inputs
+  let lastX = 0;
+  let lastY = 0;
+  let dragging = false;
+  let pitch = 0;
+  let yaw = 0;
+  let distance = 2;
+
+  function updateViewMatrix() {
+    const rotation = mat4.create();
+    mat4.rotateX(rotation, rotation, pitch);
+    mat4.rotateY(rotation, rotation, yaw);
+
+    const translation = mat4.create();
+    mat4.translate(translation, translation, [0.0, 0.0, -distance]);
+
+    mat4.multiply(viewMatrix, translation, rotation);
+  }
+
+  canvas.addEventListener("mousedown", (e) => {
+    lastX = e.offsetX;
+    lastY = e.offsetY;
+    dragging = true;
+  });
+
+  canvas.addEventListener("mouseup", () => {
+    dragging = false;
+  });
+
+  canvas.addEventListener("mousemove", (e) => {
+    if (!dragging) {
+      return;
+    }
+
+    const xDelta = e.offsetX - lastX;
+    const yDelta = e.offsetY - lastY;
+
+    pitch += yDelta * 0.01;
+    yaw += xDelta * 0.01;
+
+    lastX = e.offsetX;
+    lastY = e.offsetY;
+
+    updateViewMatrix();
+    requestAnimationFrame(render);
+  });
+
+  // Handle scroll events
+  canvas.addEventListener("wheel", (e) => {
+    distance -= e.deltaY * 0.01;
+    distance = Math.max(distance, 0.001);
+
+    updateViewMatrix();
+    requestAnimationFrame(render);
+  });
 
   // Render
   function render() {
@@ -105,7 +219,7 @@ async function main() {
     gl.bindVertexArray(vao);
 
     // Draw triangle
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   }
   requestAnimationFrame(render);
 }
