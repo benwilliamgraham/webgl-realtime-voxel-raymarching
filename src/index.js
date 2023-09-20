@@ -198,6 +198,18 @@ async function main() {
     requestAnimationFrame(render);
   });
 
+  // Create volume
+  let volumeSize = [16, 16, 16];
+
+  function uploadVolume() {
+    distance = 2 * Math.max(...volumeSize);
+
+    updateViewMatrix();
+    requestAnimationFrame(render);
+  }
+
+  uploadVolume();
+
   // Render
   function render() {
     // Clear screen
@@ -214,6 +226,10 @@ async function main() {
 
     const uMVPMatrixLocation = gl.getUniformLocation(program, "uMVPMatrix");
     gl.uniformMatrix4fv(uMVPMatrixLocation, false, uMVPMatrix);
+
+    // Upload volume size
+    const uVolumeSizeLocation = gl.getUniformLocation(program, "uVolumeSize");
+    gl.uniform3f(uVolumeSizeLocation, ...volumeSize);
 
     // Bind vertex array object
     gl.bindVertexArray(vao);
