@@ -196,6 +196,8 @@ async function main() {
 
     updateViewMatrix();
     requestAnimationFrame(render);
+
+    e.preventDefault();
   });
 
   // Create volume
@@ -249,6 +251,10 @@ async function main() {
     // Clear screen
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // black
     gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Enable depth test and culling
+    gl.enable(gl.DEPTH_TEST);
+    gl.enable(gl.CULL_FACE);
 
     // Use shader program
     gl.useProgram(program);
