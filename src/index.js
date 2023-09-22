@@ -199,16 +199,50 @@ async function main() {
   });
 
   // Create volume
-  let volumeSize = [16, 16, 16];
+  let volumeSize = [4, 4, 4];
+  let volume = new Uint8Array(
+    volumeSize[0] * volumeSize[1] * volumeSize[2] * 4
+  );
+  for (let z = 0; z < volumeSize[2]; z++) {
+    for (let y = 0; y < volumeSize[1]; y++) {
+      for (let x = 0; x < volumeSize[0]; x++) {
+        const index =
+          (x + y * volumeSize[0] + z * volumeSize[0] * volumeSize[1]) * 4;
+        volume[index + 0] = (x / volumeSize[0]) * 255;
+        volume[index + 1] = (y / volumeSize[1]) * 255;
+        volume[index + 2] = (z / volumeSize[2]) * 255;
+        volume[index + 3] = 255;
+      }
+    }
+  }
+
+  const volumeTexture = gl.createTexture();
 
   function uploadVolume() {
     distance = 2 * Math.max(...volumeSize);
 
+    gl.bindTexture(gl.TEXTURE_3D, volumeTexture);
+    gl.texImage3D(
+      gl.TEXTURE_3D,
+      0,
+      gl.RGBA,
+      volumeSize[0],
+      volumeSize[1],
+      volumeSize[2],
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      volume
+    );
+
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.generateMipmap(gl.TEXTURE_3D);
+
     updateViewMatrix();
     requestAnimationFrame(render);
   }
-
-  uploadVolume();
 
   // Render
   function render() {
@@ -231,13 +265,20 @@ async function main() {
     const uVolumeSizeLocation = gl.getUniformLocation(program, "uVolumeSize");
     gl.uniform3f(uVolumeSizeLocation, ...volumeSize);
 
+    // Upload volume texture
+    const uVolumeLocation = gl.getUniformLocation(program, "uVolume");
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_3D, volumeTexture);
+    gl.uniform1i(uVolumeLocation, 0);
+
     // Bind vertex array object
     gl.bindVertexArray(vao);
 
     // Draw triangle
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   }
-  requestAnimationFrame(render);
+
+  uploadVolume();
 }
 
 main();
