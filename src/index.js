@@ -210,10 +210,14 @@ async function main() {
       for (let x = 0; x < volumeSize[0]; x++) {
         const index =
           (x + y * volumeSize[0] + z * volumeSize[0] * volumeSize[1]) * 4;
-        volume[index + 0] = (x / volumeSize[0]) * 255;
-        volume[index + 1] = (y / volumeSize[1]) * 255;
-        volume[index + 2] = (z / volumeSize[2]) * 255;
-        volume[index + 3] = 255;
+        if (x + y + z < 3) {
+          volume[index + 3] = 0;
+        } else {
+          volume[index + 0] = (x / volumeSize[0]) * 255;
+          volume[index + 1] = (y / volumeSize[1]) * 255;
+          volume[index + 2] = (z / volumeSize[2]) * 255;
+          volume[index + 3] = 255;
+        }
       }
     }
   }
@@ -252,9 +256,11 @@ async function main() {
     gl.clearColor(0.0, 0.0, 0.0, 1.0); // black
     gl.clear(gl.COLOR_BUFFER_BIT);
 
-    // Enable depth test and culling
+    // Enable depth test, culling, and transparency
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
     // Use shader program
     gl.useProgram(program);
@@ -270,6 +276,20 @@ async function main() {
     // Upload volume size
     const uVolumeSizeLocation = gl.getUniformLocation(program, "uVolumeSize");
     gl.uniform3f(uVolumeSizeLocation, ...volumeSize);
+
+    // Upload camera position
+    const uCameraPositionLocation = gl.getUniformLocation(
+      program,
+      "uCameraPosition"
+    );
+
+    // create inverse of view matrix
+    const rotation = mat4.create();
+    mat4.rotateY(rotation, rotation, -yaw);
+    mat4.rotateX(rotation, rotation, -pitch);
+    const cameraPosition = vec3.create();
+    vec3.transformMat4(cameraPosition, [0.0, 0.0, distance], rotation);
+    gl.uniform3f(uCameraPositionLocation, ...cameraPosition);
 
     // Upload volume texture
     const uVolumeLocation = gl.getUniformLocation(program, "uVolume");
